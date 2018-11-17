@@ -139,6 +139,6 @@ func GetInstTableName(objID string) string {
 	case BKTableNameInstAsst:
 		return BKTableNameInstAsst
 	default:
-		return BKTableNameBaseInst
+		return objID
 	}
 }

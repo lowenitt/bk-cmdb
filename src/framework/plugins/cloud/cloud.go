@@ -10,8 +10,26 @@
  * limitations under the License.
  */
 
-package plugins
+package cloud
 
 import (
-	_ "configcenter/src/framework/plugins/cloud" // load tencentcloud
+	"fmt"
+
+	"configcenter/src/framework/api"
 )
+
+func run() {
+
+	set, err := api.CreateSet("0")
+	if nil != err {
+		fmt.Println("create set obj error :%v", err)
+	}
+	set.SetName("aaaaaa")
+	set.SetBusinessID(2)
+	set.SetParent(2)
+	err = set.Save()
+	if nil != err {
+		fmt.Println("save set obj error :%v", err)
+	}
+
+}
