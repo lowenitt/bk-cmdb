@@ -22,7 +22,6 @@ import (
 	"configcenter/src/common/metadata"
 	"configcenter/src/web_server/app/options"
 	webCommon "configcenter/src/web_server/common"
-	"configcenter/src/web_server/middleware/user/plugins"
 
 	"github.com/gin-gonic/gin"
 	"github.com/holmeswang/contrib/sessions"
@@ -48,7 +47,7 @@ func (m *publicUser) LoginUser(c *gin.Context) bool {
 	}
 
 	if nil == m.loginPlg {
-		user := plugins.CurrentPlugin(c, m.config.LoginVersion)
+		user := NewloginUser()
 		userInfo, loginSucc = user.LoginUser(c, m.config.ConfigMap, isMultiOwner)
 	} else {
 
@@ -117,7 +116,7 @@ func (m *publicUser) GetUserList(c *gin.Context) (int, interface{}) {
 	rspBody := metadata.LonginSystemUserListResult{}
 	rspBody.Result = false
 	if nil == m.loginPlg {
-		user := plugins.CurrentPlugin(c, m.config.LoginVersion)
+		user := NewloginUser()
 		userList, err = user.GetUserList(c, m.config.ConfigMap)
 	} else {
 
@@ -155,7 +154,7 @@ func (m *publicUser) GetLoginUrl(c *gin.Context) string {
 	}
 
 	if nil == m.loginPlg {
-		user := plugins.CurrentPlugin(c, m.config.LoginVersion)
+		user := NewloginUser()
 		return user.GetLoginUrl(c, m.config.ConfigMap, params)
 	} else {
 
