@@ -19,17 +19,17 @@ import (
 )
 
 func run() {
-
-	set, err := api.CreateSet("0")
+	app, err := api.CreateBusiness("0")
 	if nil != err {
-		fmt.Println("create set obj error :%v", err)
+		fmt.Println("create app error :%v", err)
 	}
-	set.SetName("aaaaaa")
-	set.SetBusinessID(2)
-	set.SetParent(2)
-	err = set.Save()
+	app.SetName("test1")
+	app.SetMaintainer("admin")
+	app.SetValue("time_zone", "Asia/Shanghai")
+	app.SetValue("language", "1")
+	err = app.Save()
 	if nil != err {
-		fmt.Println("save set obj error :%v", err)
+		fmt.Println("save app  error :%v", err)
 	}
-
+	fmt.Println("save app  success")
 }
