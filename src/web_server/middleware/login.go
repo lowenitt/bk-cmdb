@@ -13,7 +13,7 @@
 package middleware
 
 import (
-	"plugin"
+	//	"plugin"
 	"strings"
 
 	"configcenter/src/apimachinery/discovery"
@@ -36,7 +36,8 @@ var checkUrl string
 
 var Engine *backbone.Engine
 var CacheCli *redis.Client
-var LoginPlg *plugin.Plugin
+
+//var LoginPlg *plugin.Plugin
 
 //ValidLogin   valid the user login status
 func ValidLogin(config options.Config, disc discovery.DiscoveryInterface) gin.HandlerFunc {
@@ -92,7 +93,7 @@ func ValidLogin(config options.Config, disc discovery.DiscoveryInterface) gin.Ha
 				c.Abort()
 				return
 			} else {
-				user := user.NewUser(config, Engine, CacheCli, LoginPlg)
+				user := user.NewUser(config, Engine, CacheCli)
 				url := user.GetLoginUrl(c)
 				c.Redirect(302, url)
 				c.Abort()
@@ -133,7 +134,7 @@ func isAuthed(c *gin.Context, config options.Config) bool {
 	}
 	session := sessions.Default(c)
 	cc_token := session.Get(common.HTTPCookieBKToken)
-	user := user.NewUser(config, Engine, CacheCli, LoginPlg)
+	user := user.NewUser(config, Engine, CacheCli)
 	if nil == cc_token {
 		return user.LoginUser(c)
 	}
@@ -152,12 +153,12 @@ func isAuthed(c *gin.Context, config options.Config) bool {
 	}
 
 	bkTokenName := common.HTTPCookieBKToken
-	if nil != LoginPlg {
-		bkPluginTokenName, err := LoginPlg.Lookup("BKTokenName")
-		if nil == err {
-			bkTokenName = *bkPluginTokenName.(*string)
-		}
-	}
+	//	if nil != LoginPlg {
+	//		bkPluginTokenName, err := LoginPlg.Lookup("BKTokenName")
+	//		if nil == err {
+	//			bkTokenName = *bkPluginTokenName.(*string)
+	//		}
+	//	}
 	bk_token, err := c.Cookie(bkTokenName)
 	blog.Infof("valid user login session token %s, cookie token %s", cc_token, bk_token)
 	if nil != err || bk_token != cc_token {

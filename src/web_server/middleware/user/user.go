@@ -13,7 +13,7 @@
 package user
 
 import (
-	"plugin"
+	//	"plugin"
 
 	"configcenter/src/common/backbone"
 	"configcenter/src/web_server/app/options"
@@ -29,6 +29,6 @@ type User interface {
 }
 
 //NewUser return user instance by type
-func NewUser(config options.Config, engin *backbone.Engine, cacheCli *redis.Client, loginPlg *plugin.Plugin) User {
-	return &publicUser{config, engin, cacheCli, loginPlg}
+func NewUser(config options.Config, engin *backbone.Engine, cacheCli *redis.Client) User {
+	return &publicUser{config, engin, cacheCli}
 }

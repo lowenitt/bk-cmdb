@@ -16,7 +16,8 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"plugin"
+
+	//	"plugin"
 	"strings"
 	"time"
 
@@ -129,16 +130,16 @@ func Run(ctx context.Context, op *options.ServerOption) error {
 	service.Logics = &logics.Logics{Engine: engine}
 	service.Config = webSvr.Config
 
-	if webSvr.Config.LoginVersion != common.BKDefaultLoginUserPluginVersion && webSvr.Config.LoginVersion != "" {
-		service.VersionPlg, err = plugin.Open("login.so")
-		if nil != err {
-			service.VersionPlg = nil
-			return fmt.Errorf("load login so err: %v", err)
-		}
-	}
+	//	if webSvr.Config.LoginVersion != common.BKDefaultLoginUserPluginVersion && webSvr.Config.LoginVersion != "" {
+	//		service.VersionPlg, err = plugin.Open("login.so")
+	//		if nil != err {
+	//			service.VersionPlg = nil
+	//			return fmt.Errorf("load login so err: %v", err)
+	//		}
+	//	}
 	middleware.Engine = engine
 	middleware.CacheCli = cacheCli
-	middleware.LoginPlg = service.VersionPlg
+	//	middleware.LoginPlg = service.VersionPlg
 
 	select {}
 	return nil
