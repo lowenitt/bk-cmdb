@@ -19,13 +19,14 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/emicklei/go-restful"
+
 	"configcenter/src/common"
 	"configcenter/src/common/blog"
 	meta "configcenter/src/common/metadata"
 	"configcenter/src/common/util"
 	"configcenter/src/scene_server/validator"
 
-	"github.com/emicklei/go-restful"
 )
 
 // updateHostPlat 根据条件更新主机信息
@@ -374,7 +375,7 @@ func (s *Service) HostSearchByProperty(req *restful.Request, resp *restful.Respo
 		resp.WriteError(http.StatusInternalServerError, &meta.RespError{Msg: defErr.Errorf(common.CCErrHostGetSetFaild, err.Error())})
 		return
 	}
-	blog.V(5).Infof("HostSearchByProperty ApplicationID: %s, SetID: %v\n", appID, setIDArr)
+	blog.V(5).Infof("HostSearchByProperty ApplicationID: %d, SetID: %v\n", appID, setIDArr)
 
 	condition := map[string][]int64{
 		common.BKAppIDField: []int64{appID},
@@ -541,7 +542,7 @@ func (s *Service) GetHostAppByCompanyId(req *restful.Request, resp *restful.Resp
 	}
 	configArr, err := s.Logics.GetConfigByCond(req.Request.Header, configCon)
 	if nil != err {
-		blog.Errorf("GetHostAppByCompanyId getConfigByCond err:%s, input:%+v,rid", err.Error(), input, rid)
+		blog.Errorf("GetHostAppByCompanyId getConfigByCond err:%s, input:%+v,rid:%s", err.Error(), input, rid)
 		resp.WriteError(http.StatusInternalServerError, &meta.RespError{Msg: defErr.Errorf(common.CCErrHostGetFail)})
 		return
 	}
@@ -686,7 +687,7 @@ func (s *Service) GetGitServerIp(req *restful.Request, resp *restful.Response) {
 		return
 	}
 
-	for key, _ := range appMap {
+	for key := range appMap {
 		appID = key
 	}
 
@@ -708,7 +709,7 @@ func (s *Service) GetGitServerIp(req *restful.Request, resp *restful.Response) {
 		})
 		return
 	}
-	for key, _ := range setMap {
+	for key := range setMap {
 		setID = key
 	}
 
@@ -723,7 +724,7 @@ func (s *Service) GetGitServerIp(req *restful.Request, resp *restful.Response) {
 		resp.WriteError(http.StatusBadRequest, &meta.RespError{Msg: defErr.Errorf(common.CCErrHostGetSetFaild, err.Error())})
 		return
 	}
-	for key, _ := range moduleMap {
+	for key := range moduleMap {
 		moduleID = key
 	}
 
@@ -878,31 +879,6 @@ func (s *Service) DelPlat(req *restful.Request, resp *restful.Response) {
 			Data:     "",
 		})
 	}
-}
-
-func (s *Service) GetAgentStatus(req *restful.Request, resp *restful.Response) {
-	defErr := s.CCErr.CreateDefaultCCErrorIf(util.GetActionLanguage(req))
-
-	// 获取AppID
-	pathParams := req.PathParameters()
-	appID, err := util.GetInt64ByInterface(pathParams["appid"])
-	if nil != err {
-		blog.Errorf("GetAgentStatus error :%s", err)
-		resp.WriteError(http.StatusBadRequest, &meta.RespError{Msg: defErr.Errorf(common.CCErrCommParamsInvalid, err.Error())})
-		return
-	}
-
-	res, err := s.Logics.GetAgentStatus(appID, &s.Config.Gse, req.Request.Header)
-	if nil != err {
-		blog.Errorf("GetAgentStatus error :%v", err)
-		resp.WriteError(http.StatusInternalServerError, &meta.RespError{Msg: defErr.Errorf(common.CCErrCommParamsInvalid, err.Error())})
-		return
-	}
-	resp.WriteEntity(meta.Response{
-		BaseResp: meta.SuccessBaseResp,
-		Data:     res,
-	})
-
 }
 
 func (s *Service) getHostListByAppidAndField(req *restful.Request, resp *restful.Response) {

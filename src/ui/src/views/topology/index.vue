@@ -43,7 +43,7 @@
                     <bk-button type="primary" class="topo-node-btn-create fr"
                         v-if="showCreate(node, state)"
                         @click.stop="handleCreate">
-                        {{$t('Common[\'新增\']')}}
+                        {{$t('Common[\'新建\']')}}
                     </bk-button>
                 </div>
             </cmdb-tree>
@@ -462,7 +462,7 @@
                 this.$refs.topoTable.search(this.business, this.table.params, true)
             },
             setSearchParams () {
-                const necessaryObj = Object.keys(this.properties)
+                const necessaryObj = ['host', 'biz', 'set', 'module']
                 const condition = necessaryObj.map(objId => {
                     return {
                         'bk_obj_id': objId,

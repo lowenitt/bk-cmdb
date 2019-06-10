@@ -16,14 +16,14 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/emicklei/go-restful"
-	"github.com/gin-gonic/gin/json"
-
 	"configcenter/src/common"
 	"configcenter/src/common/blog"
 	"configcenter/src/common/mapstr"
 	meta "configcenter/src/common/metadata"
 	"configcenter/src/common/util"
+
+	"github.com/emicklei/go-restful"
+	"github.com/gin-gonic/gin/json"
 )
 
 func (ps *ProcServer) GetProcessPortByApplicationID(req *restful.Request, resp *restful.Response) {
@@ -56,7 +56,7 @@ func (ps *ProcServer) GetProcessPortByApplicationID(req *restful.Request, resp *
 			continue
 		}
 
-		processes, getErr := ps.getProcessesByModuleName(forward, moduleName)
+		processes, getErr := ps.getProcessesByModuleName(forward, moduleName, appID)
 		if getErr != nil {
 			blog.Errorf("GetProcessesByModuleName failed int GetProcessPortByApplicationID, err: %s", getErr.Error())
 			resp.WriteError(http.StatusInternalServerError, &meta.RespError{Msg: defErr.Error(common.CCErrProcGetByApplicationIDFail)})
@@ -271,9 +271,10 @@ func (ps *ProcServer) GetProcessPortByIP(req *restful.Request, resp *restful.Res
 }
 
 // 根据模块获取所有关联的进程，建立Map ModuleToProcesses
-func (ps *ProcServer) getProcessesByModuleName(forward http.Header, moduleName string) ([]mapstr.MapStr, error) {
+func (ps *ProcServer) getProcessesByModuleName(forward http.Header, moduleName string, appID int64) ([]mapstr.MapStr, error) {
 	procData := make([]mapstr.MapStr, 0)
 	params := mapstr.MapStr{
+		common.BKAppIDField:      appID,
 		common.BKModuleNameField: moduleName,
 	}
 
@@ -463,20 +464,32 @@ func (ps *ProcServer) getProcessMapByAppID(appID int64, forward http.Header) (ma
 }
 
 func (ps *ProcServer) getProcessBindModule(appId, procId int64, forward http.Header) ([]interface{}, error) {
+	ccErr := ps.Engine.CCErr.CreateDefaultCCErrorIf(util.GetLanguage(forward))
+	rid := util.GetHTTPCCRequestID(forward)
 	condition := make(map[string]interface{})
 	condition[common.BKAppIDField] = appId
 	input := new(meta.QueryInput)
 	input.Condition = condition
 	objModRet, err := ps.CoreAPI.ObjectController().Instance().SearchObjects(context.Background(), common.BKInnerObjIDModule, forward, input)
-	if err != nil || (err == nil && !objModRet.Result) {
-		return nil, fmt.Errorf("fail to get module by appid(%d). err: %v, errcode: %d, errmsg: %s", err, objModRet.Code, objModRet.ErrMsg)
+	if err != nil {
+		blog.ErrorJSON("getProcessBindModule SearchObjects http do error. err:%s, input:%s,rid:%s", err.Error(), condition, rid)
+		return nil, ccErr.Error(common.CCErrCommHTTPDoRequestFailed)
+	}
+	if !objModRet.Result {
+		blog.ErrorJSON("getProcessBindModule SearchObjects http do error. err:%s, input:%s,rid:%s", objModRet, condition, rid)
+		return nil, ccErr.New(objModRet.Code, objModRet.ErrMsg)
 	}
 
 	moduleArr := objModRet.Data.Info
 	condition[common.BKProcessIDField] = procId
 	procRet, err := ps.CoreAPI.ProcController().GetProc2Module(context.Background(), forward, condition)
-	if err != nil || (err == nil && !procRet.Result) {
-		return nil, fmt.Errorf("fail to GetProc2Module in getProcessBindModule. err: %v, errcode: %d, errmsg: %s", err, procRet.Code, procRet.ErrMsg)
+	if err != nil {
+		blog.ErrorJSON("getProcessBindModule GetProc2Module http do error. err:%s, input:%s,rid:%s", err.Error(), condition, rid)
+		return nil, ccErr.Error(common.CCErrCommHTTPDoRequestFailed)
+	}
+	if !procRet.Result {
+		blog.ErrorJSON("getProcessBindModule GetProc2Module http do error. err:%s, input:%s,rid:%s", procRet, condition, rid)
+		return nil, ccErr.New(objModRet.Code, objModRet.ErrMsg)
 	}
 
 	procModuleData := procRet.Data
@@ -489,7 +502,7 @@ func (ps *ProcServer) getProcessBindModule(appId, procId int64, forward http.Hea
 			}
 			isDefault64, err := util.GetInt64ByInterface(modArr[common.BKDefaultField])
 			if nil != err {
-				blog.Errorf("GetProcessBindModule get module default error:%s", err.Error())
+				blog.Errorf("GetProcessBindModule get module default error:%s,rid:%s", err.Error(), rid)
 				continue
 
 			} else {
@@ -528,6 +541,6 @@ func (ps *ProcServer) getProcessBindModule(appId, procId int64, forward http.Hea
 		result = append(result, data)
 	}
 
-	blog.V(5).Infof("getProcessBindModule result: %+v", result)
+	blog.V(5).Infof("getProcessBindModule result: %+v,rid:%s", result, rid)
 	return result, nil
 }

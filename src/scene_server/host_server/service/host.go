@@ -23,7 +23,6 @@ import (
 	"configcenter/src/common"
 	"configcenter/src/common/auditoplog"
 	"configcenter/src/common/blog"
-	"configcenter/src/common/mapstr"
 	meta "configcenter/src/common/metadata"
 	"configcenter/src/common/util"
 	"configcenter/src/scene_server/host_server/logics"
@@ -34,15 +33,15 @@ import (
 )
 
 type AppResult struct {
-	Result  bool        `json:result`
-	Code    int         `json:code`
-	Message interface{} `json:message`
-	Data    DataInfo    `json:data`
+	Result  bool        `json:"result"`
+	Code    int         `json:"code"`
+	Message interface{} `json:"message"`
+	Data    DataInfo    `json:"data"`
 }
 
 type DataInfo struct {
-	Count int                      `json:count`
-	Info  []map[string]interface{} `json:info`
+	Count int                      `json:"count"`
+	Info  []map[string]interface{} `json:"info"`
 }
 
 func (s *Service) DeleteHostBatch(req *restful.Request, resp *restful.Response) {
@@ -68,8 +67,7 @@ func (s *Service) DeleteHostBatch(req *restful.Request, resp *restful.Response) 
 		iHostIDArr = append(iHostIDArr, iHostID)
 	}
 
-	condition := make(map[string]interface{})
-	condition = hutil.NewOperation().WithDefaultField(int64(common.DefaultAppFlag)).WithOwnerID(ownerID).Data()
+	condition := hutil.NewOperation().WithDefaultField(int64(common.DefaultAppFlag)).WithOwnerID(ownerID).Data()
 	query := meta.QueryInput{Condition: condition}
 	query.Limit = 1
 	result, err := s.CoreAPI.ObjectController().Instance().SearchObjects(context.Background(), common.BKInnerObjIDApp, req.Request.Header, &query)
@@ -269,7 +267,7 @@ func (s *Service) AddHost(req *restful.Request, resp *restful.Response) {
 		retData["error"] = errRow
 		retData["update_error"] = updateErrRow
 		resp.WriteEntity(meta.Response{
-			BaseResp: meta.BaseResp{false, common.CCErrHostCreateFail, defErr.Error(common.CCErrHostCreateFail).Error()},
+			BaseResp: meta.BaseResp{Result: false, Code: common.CCErrHostCreateFail, ErrMsg: defErr.Error(common.CCErrHostCreateFail).Error()},
 			Data:     retData,
 		})
 		return
@@ -330,65 +328,13 @@ func (s *Service) AddHostFromAgent(req *restful.Request, resp *restful.Response)
 		retData["error"] = errRow
 		retData["update_error"] = updateErrRow
 		resp.WriteEntity(meta.Response{
-			BaseResp: meta.BaseResp{false, common.CCErrHostCreateFail, defErr.Error(common.CCErrHostCreateFail).Error()},
+			BaseResp: meta.BaseResp{Result: false, Code: common.CCErrHostCreateFail, ErrMsg: defErr.Error(common.CCErrHostCreateFail).Error()},
 			Data:     retData,
 		})
 		return
 	}
 
 	resp.WriteEntity(meta.NewSuccessResp(succ))
-}
-
-func (s *Service) AddHistory(req *restful.Request, resp *restful.Response) {
-	pheader := req.Request.Header
-	user := util.GetUser(pheader)
-	defErr := s.CCErr.CreateDefaultCCErrorIf(util.GetLanguage(pheader))
-
-	data := make(mapstr.MapStr)
-	if err := json.NewDecoder(req.Request.Body).Decode(&data); err != nil {
-		blog.Errorf("add host from agent failed with decode body err: %v", err)
-		resp.WriteError(http.StatusBadRequest, &meta.RespError{Msg: defErr.Error(common.CCErrCommJSONUnmarshalFailed)})
-		return
-	}
-	content, ok := data["content"].(string)
-	if !ok || "" == content {
-		blog.Errorf("add history, but content is empty. data: %v", data)
-		resp.WriteError(http.StatusBadRequest, &meta.RespError{Msg: defErr.Error(common.CCErrCommHTTPInputInvalid)})
-		return
-
-	}
-	params := make(map[string]interface{}, 1)
-	params["content"] = content
-
-	result, err := s.CoreAPI.HostController().History().AddHistory(context.Background(), user, pheader, &meta.HistoryContent{Content: content})
-	if err != nil || (err == nil && !result.Result) {
-		blog.Errorf("add history failed, err: %v, result err: %v", err, result.ErrMsg)
-		resp.WriteError(http.StatusBadRequest, &meta.RespError{Msg: defErr.Error(common.CCErrHostHisCreateFail)})
-		return
-	}
-
-	resp.WriteEntity(meta.NewSuccessResp(result.Data))
-}
-
-func (s *Service) GetHistorys(req *restful.Request, resp *restful.Response) {
-	pheader := req.Request.Header
-	user := util.GetUser(pheader)
-	defErr := s.CCErr.CreateDefaultCCErrorIf(util.GetLanguage(pheader))
-	start := req.PathParameter("start")
-	limit := req.PathParameter("limit")
-
-	result, err := s.CoreAPI.HostController().History().GetHistorys(context.Background(), user, start, limit, pheader)
-	if err != nil || (err == nil && !result.Result) {
-		blog.Errorf("get history failed, err: %v, result err: %v", err, result.ErrMsg)
-		resp.WriteError(http.StatusBadRequest, &meta.RespError{Msg: defErr.Error(common.CCErrHostHisGetFail)})
-		return
-	}
-
-	resp.WriteEntity(meta.GetHistoryResult{
-		BaseResp: meta.SuccessBaseResp,
-		Data:     result.Data,
-	})
-
 }
 
 func (s *Service) SearchHost(req *restful.Request, resp *restful.Response) {
@@ -466,7 +412,6 @@ func (s *Service) UpdateHostBatch(req *restful.Request, resp *restful.Response) 
 		resp.WriteError(http.StatusInternalServerError, &meta.RespError{Msg: defErr.Error(common.CCErrHostDetailFail)})
 		return
 	}
-	audit := s.Logics.NewHostLog(pheader, common.BKDefaultOwnerID)
 
 	logPreConents := make(map[int64]auditoplog.AuditLogExt, 0)
 	hostIDs := make([]int64, 0)
@@ -487,6 +432,7 @@ func (s *Service) UpdateHostBatch(req *restful.Request, resp *restful.Response) 
 
 		}
 
+		audit := s.Logics.NewHostLog(pheader, common.BKDefaultOwnerID)
 		if err := audit.WithPrevious(id, hostFields); err != nil {
 			blog.Errorf("update host batch, but get host[%s] pre data for audit failed, err: %v", id, err)
 			resp.WriteError(http.StatusInternalServerError, &meta.RespError{Msg: defErr.Error(common.CCErrHostDetailFail)})
@@ -517,8 +463,9 @@ func (s *Service) UpdateHostBatch(req *restful.Request, resp *restful.Response) 
 
 	logLastConents := make([]auditoplog.AuditLogExt, 0)
 	for _, hostID := range hostIDs {
+		audit := s.Logics.NewHostLog(pheader, common.BKDefaultOwnerID)
 		if err := audit.WithPrevious(strconv.FormatInt(hostID, 10), hostFields); err != nil {
-			blog.Errorf("update host batch, but get host[%s] pre data for audit failed, err: %v", hostID, err)
+			blog.Errorf("update host batch, but get host[%d] pre data for audit failed, err: %v", hostID, err)
 			resp.WriteError(http.StatusInternalServerError, &meta.RespError{Msg: defErr.Error(common.CCErrHostDetailFail)})
 			return
 		}
@@ -537,7 +484,7 @@ func (s *Service) UpdateHostBatch(req *restful.Request, resp *restful.Response) 
 	log := common.KvMap{common.BKContentField: logLastConents, common.BKOpDescField: "update host", common.BKOpTypeField: auditoplog.AuditOpTypeModify}
 	aResult, err := s.CoreAPI.AuditController().AddHostLogs(context.Background(), common.BKDefaultOwnerID, appID, user, pheader, log)
 	if err != nil || (err == nil && !aResult.Result) {
-		blog.Errorf("update host batch, but add host[%s] audit failed, err: %v, %v", hostIDs, err, aResult.ErrMsg)
+		blog.Errorf("update host batch, but add host[%v] audit failed, err: %v, %v", hostIDs, err, aResult.ErrMsg)
 		resp.WriteError(http.StatusInternalServerError, &meta.RespError{Msg: defErr.Error(common.CCErrHostDetailFail)})
 		return
 	}
@@ -558,11 +505,11 @@ func (s *Service) NewHostSyncAppTopo(req *restful.Request, resp *restful.Respons
 
 	if hostList.HostInfo == nil {
 		blog.Errorf("add host, but host info is nil.")
-		resp.WriteError(http.StatusBadRequest, &meta.RespError{Msg: defErr.Error(common.CCErrCommParamsNeedSet)})
+		resp.WriteError(http.StatusBadRequest, &meta.RespError{Msg: defErr.Errorf(common.CCErrCommParamsNeedSet, "host_info")})
 		return
 	}
 	if 0 == len(hostList.ModuleID) {
-		blog.Errorf("host sync app  parameters required moduleID", hostList.ApplicationID)
+		blog.Errorf("host sync app  parameters required moduleID, appID:%d", hostList.ApplicationID)
 		resp.WriteError(http.StatusBadRequest, &meta.RespError{Msg: defErr.Errorf(common.CCErrCommParamsNeedSet, common.BKModuleIDField)})
 		return
 	}
@@ -614,7 +561,7 @@ func (s *Service) NewHostSyncAppTopo(req *restful.Request, resp *restful.Respons
 		retData["error"] = errRow
 		retData["update_error"] = updateErrRow
 		resp.WriteEntity(meta.Response{
-			BaseResp: meta.BaseResp{false, common.CCErrHostCreateFail, defErr.Error(common.CCErrHostCreateFail).Error()},
+			BaseResp: meta.BaseResp{Result: false, Code: common.CCErrHostCreateFail, ErrMsg: defErr.Error(common.CCErrHostCreateFail).Error()},
 			Data:     retData,
 		})
 		return
@@ -707,12 +654,12 @@ func (s *Service) MoveSetHost2IdleModule(req *restful.Request, resp *restful.Res
 
 		bl, err := s.Logics.IsHostExistInApp(data.ApplicationID, hostID, pheader)
 		if nil != err {
-			blog.Errorf("check host is exist in app error, params:{appid:%d, hostid:%s}, error:%s", data.ApplicationID, hostID, err.Error())
+			blog.Errorf("check host is exist in app error, params:{appid:%d, hostid:%d}, error:%s", data.ApplicationID, hostID, err.Error())
 			resp.WriteError(http.StatusInternalServerError, &meta.RespError{Msg: defErr.Error(common.CCErrHostNotINAPPFail)})
 			return
 		}
 		if false == bl {
-			blog.Errorf("host do not belong to the current application; error, params:{appid:%d, hostid:%s}", data.ApplicationID, hostID)
+			blog.Errorf("host do not belong to the current application; error, params:{appid:%d, hostid:%d}", data.ApplicationID, hostID)
 			resp.WriteError(http.StatusInternalServerError, &meta.RespError{Msg: defErr.Error(common.CCErrHostNotINAPP)})
 			return
 		}

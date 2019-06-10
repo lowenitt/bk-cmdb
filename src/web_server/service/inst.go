@@ -105,9 +105,15 @@ func (s *Service) ExportInst(c *gin.Context) {
 	file = xlsx.NewFile()
 
 	fields, err := s.Logics.GetObjFieldIDs(objID, nil, pheader)
+	if err != nil {
+		blog.Errorf("ExportInst object:%s error:%s", objID, err.Error())
+		reply := getReturnStr(common.CCErrCommExcelTemplateFailed, err.Error(), nil)
+		c.Writer.Write([]byte(reply))
+		return
+	}
 	err = s.Logics.BuildExcelFromData(context.Background(), objID, fields, nil, instInfo, file, pheader)
 	if nil != err {
-		blog.Errorf("ExportHost object:%s error:%s", objID, err.Error())
+		blog.Errorf("ExportInst object:%s error:%s", objID, err.Error())
 		reply := getReturnStr(common.CCErrCommExcelTemplateFailed, defErr.Errorf(common.CCErrCommExcelTemplateFailed, objID).Error(), nil)
 		c.Writer.Write([]byte(reply))
 		return
@@ -131,7 +137,7 @@ func (s *Service) ExportInst(c *gin.Context) {
 			return
 		}
 	}
-	logics.AddDownExcelHttpHeader(c, fmt.Sprintf("inst_%s.xlsx", objID))
+	logics.AddDownExcelHttpHeader(c, fmt.Sprintf("bk_cmdb_export_inst_%s.xlsx", objID))
 	c.File(dirFileName)
 
 	os.Remove(dirFileName)

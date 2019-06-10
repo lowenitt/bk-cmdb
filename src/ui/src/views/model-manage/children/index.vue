@@ -210,7 +210,7 @@
                         config: {
                             requestId: 'importObjectAttribute',
                             globalError: false,
-                            originalResponse: true
+                            transformData: false
                         }
                     }).then(res => {
                         this.$http.cancel(`post_searchObjectAttribute_${this.activeModel['bk_obj_id']}`)
@@ -260,6 +260,7 @@
                     this.$http.cancel('post_searchClassificationsObjects')
                 })
                 this.setActiveModel({...this.activeModel, ...this.modelParams})
+                this.$store.commit('setHeaderTitle', this.activeModel['bk_obj_name'])
                 this.isEditName = false
             },
             async initObject () {

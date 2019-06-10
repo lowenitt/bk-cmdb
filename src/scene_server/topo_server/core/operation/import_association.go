@@ -221,7 +221,6 @@ func (ia *importAssociation) getAssociationObjProperty() error {
 
 	cond := condition.CreateCondition()
 	cond.Field(common.BKObjIDField).In(objIDArr)
-	cond.Field(common.BKIsOnlyField).Eq(true)
 
 	rsp, err := ia.cli.clientSet.ObjectController().Meta().SelectObjectAttWithParams(context.Background(), ia.params.Header, cond.ToMapStr())
 	if nil != err {
@@ -318,6 +317,7 @@ func (ia *importAssociation) getInstDataByConds() error {
 
 		instIDKey := metadata.GetInstIDFieldByObjID(objID)
 		conds := condition.CreateCondition()
+		conds.Field(common.BKObjIDField).Eq(objID)
 		conds.NewOR().MapStrArr(valArr)
 
 		instArr, err := ia.getInstDataByObjIDConds(objID, instIDKey, conds)
@@ -341,12 +341,13 @@ func (ia *importAssociation) getInstDataByObjIDConds(objID, instIDKey string, co
 
 	fields = append(fields, instIDKey)
 	queryInput := &metadata.QueryInput{}
+
 	queryInput.Condition = conds.ToMapStr()
 	queryInput.Fields = strings.Join(fields, ",")
 
 	instSearchResult, err := ia.cli.clientSet.ObjectController().Instance().SearchObjects(ia.ctx, objID, ia.params.Header, queryInput)
 	if err != nil {
-		blog.Errorf("[getInstDataByObjIDConds] failed to  search %s instance , error info is %s, input:%+v, rid:%s", err.Error(), queryInput, ia.rid)
+		blog.Errorf("[getInstDataByObjIDConds] failed to  search %s instance , error info is %s, input:%#v, rid:%s", objID, err.Error(), queryInput, ia.rid)
 		return nil, ia.params.Err.Error(common.CCErrCommHTTPDoRequestFailed)
 	}
 	if !instSearchResult.Result {
@@ -382,7 +383,7 @@ func (ia *importAssociation) parseInstToImportAssociationInst(objID, instIDKey s
 	if isErr {
 		return
 	}
-	for key, _ := range attrNameValMap.attrNameVal {
+	for key := range attrNameValMap.attrNameVal {
 		_, ok := ia.instIDAttrKeyValMap[objID]
 		if !ok {
 			ia.instIDAttrKeyValMap[objID] = make(map[string][]*importAssociationInst)
@@ -410,7 +411,7 @@ func (ia *importAssociation) delSrcAssociation(idx int, cond condition.Condition
 		return
 	}
 
-	if result.Result {
+	if !result.Result {
 		ia.parseImportDataErr[idx] = result.ErrMsg
 		return
 	}

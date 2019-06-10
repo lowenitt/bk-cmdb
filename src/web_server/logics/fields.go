@@ -92,11 +92,11 @@ func (lgc *Logics) getObjectGroup(objID string, header http.Header) ([]PropertyG
 	condition := mapstr.MapStr{common.BKObjIDField: objID, common.BKOwnerIDField: common.BKDefaultOwnerID, "page": mapstr.MapStr{"start": 0, "limit": common.BKNoLimit, "sort": common.BKPropertyGroupIndexField}}
 	result, err := lgc.Engine.CoreAPI.ApiServer().GetObjectGroup(context.Background(), header, ownerID, objID, condition)
 	if nil != err {
-		blog.Errorf("get %s fields group return:%s, err:%s, rid:%s", objID, result, err.Error(), util.GetHTTPCCRequestID(header))
+		blog.Errorf("get %s fields group http do error, err:%s, rid:%s", objID, err.Error(), util.GetHTTPCCRequestID(header))
 		return nil, err
 	}
 	if !result.Result {
-		blog.Errorf("get %s fields group  return:%s data not array, error code:%s, error message:%s, rid:%s", objID, result.Code, result.ErrMsg, util.GetHTTPCCRequestID(header))
+		blog.Errorf("get %s fields group  http reply error. error code:%d, error message:%s, rid:%s", objID, result.Code, result.ErrMsg, util.GetHTTPCCRequestID(header))
 		return nil, err
 	}
 	fields := result.Data
@@ -113,9 +113,8 @@ func (lgc *Logics) getObjectGroup(objID string, header http.Header) ([]PropertyG
 
 }
 
-func (lgc *Logics) getAsstObjectPrimaryFieldByObjID(objID string, header http.Header, conds mapstr.MapStr) ([]Property, error) {
-
-	fields, err := lgc.getObjFieldIDsBySort(objID, common.BKPropertyIDField, header, conds)
+func (lgc *Logics) getObjectPrimaryFieldByObjID(objID string, header http.Header) ([]Property, error) {
+	fields, err := lgc.getObjFieldIDsBySort(objID, common.BKPropertyIDField, header, nil)
 	if nil != err {
 		return nil, err
 	}
@@ -159,11 +158,29 @@ func (lgc *Logics) getObjFieldIDsBySort(objID, sort string, header http.Header, 
 		return nil, lgc.CCErr.CreateDefaultCCErrorIf(util.GetLanguage(header)).New(result.Code, result.ErrMsg)
 	}
 
+	uniques, err := lgc.CoreAPI.ObjectController().Unique().Search(context.Background(), header, objID)
+	if nil != err {
+		blog.Errorf("getObjectPrimaryFieldByObjID get unique for %s error: %v ,rid:%s", objID, err, util.GetHTTPCCRequestID(header))
+		return nil, lgc.CCErr.CreateDefaultCCErrorIf(util.GetLanguage(header)).Error(common.CCErrCommHTTPDoRequestFailed)
+	}
+	if !uniques.Result {
+		blog.Errorf("getObjectPrimaryFieldByObjID get unique for %s error: %v ,rid:%s", objID, uniques, util.GetHTTPCCRequestID(header))
+		return nil, lgc.CCErr.CreateDefaultCCErrorIf(util.GetLanguage(header)).New(uniques.Code, uniques.ErrMsg)
+	}
+
+	keyIDs := map[uint64]bool{}
+	for _, unique := range uniques.Data {
+		if unique.MustCheck {
+			for _, key := range unique.Keys {
+				keyIDs[key.ID] = true
+			}
+			break
+		}
+	}
+
 	ret := []Property{}
-
 	for _, mapField := range result.Data {
-
-		fieldIsOnly := mapField.IsOnly
+		fieldIsOnly := keyIDs[uint64(mapField.ID)]
 		fieldName := mapField.PropertyName
 		fieldID := mapField.PropertyID
 		fieldType := mapField.PropertyType

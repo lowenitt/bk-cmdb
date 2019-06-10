@@ -31,12 +31,6 @@ import (
 	"github.com/rentiansheng/xlsx"
 )
 
-var (
-	CODE_SUCESS            = 0
-	CODE_ERROR_UPLOAD_FILE = 100
-	CODE_ERROR_OPEN_FILE   = 101
-)
-
 // ImportHost import host
 func (s *Service) ImportHost(c *gin.Context) {
 
@@ -109,7 +103,7 @@ func (s *Service) ExportHost(c *gin.Context) {
 	objID := common.BKInnerObjIDHost
 	fields, err := s.Logics.GetObjFieldIDs(objID, logics.GetFilterFields(objID), c.Request.Header)
 	if nil != err {
-		blog.Errorf("ExportHost get %s field error:%s error:%s", objID, err.Error())
+		blog.Errorf("ExportHost get %s field error:%s", objID, err.Error())
 		reply := getReturnStr(common.CCErrCommExcelTemplateFailed, defErr.Errorf(common.CCErrCommExcelTemplateFailed, objID).Error(), nil)
 		c.Writer.Write([]byte(reply))
 		return
@@ -138,7 +132,7 @@ func (s *Service) ExportHost(c *gin.Context) {
 		c.Writer.Write([]byte(reply))
 		return
 	}
-	logics.AddDownExcelHttpHeader(c, "host.xlsx")
+	logics.AddDownExcelHttpHeader(c, "bk_cmdb_export_host.xlsx")
 	c.File(dirFileName)
 
 	os.Remove(dirFileName)
@@ -167,8 +161,11 @@ func (s *Service) BuildDownLoadExcelTemplate(c *gin.Context) {
 		c.Writer.Write([]byte(reply))
 		return
 	}
-
-	logics.AddDownExcelHttpHeader(c, fmt.Sprintf("template_%s.xlsx", objID))
+	if objID == common.BKInnerObjIDHost {
+		logics.AddDownExcelHttpHeader(c, "bk_cmdb_import_host.xlsx")
+	} else {
+		logics.AddDownExcelHttpHeader(c, fmt.Sprintf("bk_cmdb_inst_%s.xlsx", objID))
+	}
 
 	//http.ServeFile(c.Writer, c.Request, file)
 	c.File(file)

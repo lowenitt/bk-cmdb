@@ -49,7 +49,7 @@ func (s *Service) AddHostMultiAppModuleRelation(req *restful.Request, resp *rest
 		return
 	}
 
-	module, err := s.Logics.GetModuleByModuleID(pheader, params.ApplicationID, params.ModuleID)
+	module, err := s.Logics.GetNormalModuleByModuleID(pheader, params.ApplicationID, params.ModuleID)
 	if err != nil {
 		blog.Errorf("add host multiple app module relation, but get module[%v] failed, err: %v", params.ModuleID, err)
 		resp.WriteError(http.StatusBadRequest, &metadata.RespError{Msg: defErr.Error(common.CCErrTopoModuleSelectFailed)})
@@ -174,7 +174,7 @@ func (s *Service) HostModuleRelation(req *restful.Request, resp *restful.Respons
 	}
 
 	for _, moduleID := range config.ModuleID {
-		module, err := s.Logics.GetModuleByModuleID(pheader, config.ApplicationID, moduleID)
+		module, err := s.Logics.GetNormalModuleByModuleID(pheader, config.ApplicationID, moduleID)
 		if err != nil {
 			blog.Errorf("add host and module relation, but get module with id[%d] failed, err: %v", moduleID, err)
 			resp.WriteError(http.StatusInternalServerError, &metadata.RespError{Msg: defErr.Error(common.CCErrTopoModuleSelectFailed)})
@@ -277,7 +277,7 @@ func (s *Service) MoveHostToResourcePool(req *restful.Request, resp *restful.Res
 		return
 	}
 	if 0 == len(appInfo) {
-		blog.Errorf("assign host to app error, not foud app appID: %d, input:%+v,rid:%s", conf.ApplicationID)
+		blog.Errorf("assign host to app error, not foud app appID: %d, input:%#v,rid:%s", conf.ApplicationID, conf, rid)
 		resp.WriteError(http.StatusBadRequest, &metadata.RespError{Msg: defErr.Error(common.CCErrCommNotFound)})
 		return
 	}
@@ -535,7 +535,7 @@ func (s *Service) moveHostToModuleByName(req *restful.Request, resp *restful.Res
 	}
 
 	conds := make(map[string]interface{})
-	moduleNameLogKey := "idle"
+	var moduleNameLogKey string
 	if common.DefaultResModuleName == moduleName {
 		//空闲机
 		moduleNameLogKey = "idle"
@@ -573,7 +573,7 @@ func (s *Service) moveHostToModuleByName(req *restful.Request, resp *restful.Res
 		blog.Errorf("Host does not belong to the current application, appid: %v, hostid: %#v, not exist in app:%#v,rid:%s", conf.ApplicationID, conf.HostID, notExistHostID, rid)
 		notTipStrHostID := ""
 		for _, hostID := range notExistHostID {
-			notTipStrHostID = fmt.Sprintf("%s,%s", notTipStrHostID, hostID)
+			notTipStrHostID = fmt.Sprintf("%s,%d", notTipStrHostID, hostID)
 		}
 		resp.WriteError(http.StatusInternalServerError, &metadata.RespError{Msg: defErr.Errorf(common.CCErrHostNotINAPP, strings.Trim(notTipStrHostID, ","))})
 		return

@@ -13,7 +13,7 @@
             <div class="role-form-content">
                 <div class="content-group clearfix">
                     <label for="groupName" class="fl">{{$t('Permission["角色名"]')}}</label>
-                    <input type="text" class="cmdb-form-input fl" id="groupName" v-model.trim="data['group_name']">
+                    <input type="text" class="cmdb-form-input fl" id="groupName" v-model.trim="data['group_name']" maxlength="50">
                 </div>
                 <div class="content-group clearfix">
                     <label for="userList" class="fl">{{$t('Permission["角色成员"]')}}</label>
@@ -59,7 +59,7 @@
         },
         computed: {
             title () {
-                return this.type === 'create' ? this.$t('Permission["新增角色"]') : this.$t('Permission["编辑角色"]')
+                return this.type === 'create' ? this.$t('Permission["新建角色"]') : this.$t('Permission["编辑角色"]')
             },
             params () {
                 let params = {

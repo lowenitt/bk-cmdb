@@ -47,10 +47,16 @@ func ParseCommonParams(input []metadata.ConditionItem, output map[string]interfa
 			} else {
 				output[i.Field] = i.Value
 			}
+		case common.BKDBLIKE:
+			regex := make(map[string]interface{})
+			regex[common.BKDBLIKE] = i.Value
+			output[i.Field] = regex
 
 		default:
 			d := make(map[string]interface{})
-			if reflect.TypeOf(i.Value).Kind() == reflect.String {
+			if i.Value == nil {
+				d[i.Operator] = i.Value
+			} else if reflect.TypeOf(i.Value).Kind() == reflect.String {
 				d[i.Operator] = SpeceialCharChange(i.Value.(string))
 			} else {
 				d[i.Operator] = i.Value

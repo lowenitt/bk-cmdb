@@ -14,6 +14,7 @@ package operation
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -85,8 +86,11 @@ func (c *commonInst) CreateInstBatch(params types.ContextParams, obj model.Objec
 
 	var rowErr map[int64]error
 	results := &BatchResult{}
-	if common.InputTypeExcel != batchInfo.InputType || nil == batchInfo.BatchInfo {
-		return results, nil
+	if batchInfo.InputType != common.InputTypeExcel {
+		return results, fmt.Errorf("unexpected input_type: %s", batchInfo.InputType)
+	}
+	if batchInfo.BatchInfo == nil {
+		return results, fmt.Errorf("BatchInfo empty")
 	}
 
 	for errIdx, err := range rowErr {
@@ -320,13 +324,13 @@ func (c *commonInst) DeleteInstByInstID(params types.ContextParams, obj model.Ob
 	}
 
 	for _, delInst := range deleteIDS {
-		preAudit := NewSupplementary().Audit(params, c.clientSet, obj, c).CreateSnapshot(delInst.instID, condition.CreateCondition().ToMapStr())
+		preAudit := NewSupplementary().Audit(params, c.clientSet, delInst.obj, c).CreateSnapshot(delInst.instID, condition.CreateCondition().ToMapStr())
 		// if this instance has been bind to a instance by the association, then this instance should not be deleted.
 		innerCond := condition.CreateCondition()
-		innerCond.Field(common.BKAsstObjIDField).Eq(obj.GetID())
+		innerCond.Field(common.BKAsstObjIDField).Eq(delInst.obj.GetID())
 		innerCond.Field(common.BKOwnerIDField).Eq(params.SupplierAccount)
 		innerCond.Field(common.BKAsstInstIDField).Eq(delInst.instID)
-		err := c.asst.CheckBeAssociation(params, obj, innerCond)
+		err := c.asst.CheckBeAssociation(params, delInst.obj, innerCond)
 		if nil != err {
 			return err
 		}
@@ -334,10 +338,10 @@ func (c *commonInst) DeleteInstByInstID(params types.ContextParams, obj model.Ob
 		// this instance has not be bind to another instance, we can delete all the associations it created
 		// by the association with other instances.
 		innerCond = condition.CreateCondition()
-		innerCond.Field(common.BKObjIDField).Eq(obj.GetID())
+		innerCond.Field(common.BKObjIDField).Eq(delInst.obj.GetID())
 		innerCond.Field(common.BKOwnerIDField).Eq(params.SupplierAccount)
-		innerCond.Field(common.BKInstIDField).Eq(delInst)
-		if err := c.asst.DeleteInstAssociation(params, innerCond); nil != err {
+		innerCond.Field(common.BKInstIDField).Eq(delInst.instID)
+		if err = c.asst.DeleteInstAssociation(params, innerCond); nil != err {
 			blog.Errorf("[operation-inst] failed to delete the inst asst, err: %s", err.Error())
 			return err
 		}
@@ -345,12 +349,12 @@ func (c *commonInst) DeleteInstByInstID(params types.ContextParams, obj model.Ob
 		// delete this instance now.
 		delCond := condition.CreateCondition()
 		delCond.Field(common.BKOwnerIDField).Eq(params.SupplierAccount)
-		delCond.Field(obj.GetInstIDFieldName()).In(delInst.instID)
-		if obj.IsCommon() {
-			delCond.Field(common.BKObjIDField).Eq(obj.GetID())
+		delCond.Field(delInst.obj.GetInstIDFieldName()).In(delInst.instID)
+		if delInst.obj.IsCommon() {
+			delCond.Field(common.BKObjIDField).Eq(delInst.obj.GetID())
 		}
 		// clear association
-		rsp, err := c.clientSet.ObjectController().Instance().DelObject(context.Background(), obj.GetObjectType(), params.Header, delCond.ToMapStr())
+		rsp, err := c.clientSet.ObjectController().Instance().DelObject(context.Background(), delInst.obj.GetObjectType(), params.Header, delCond.ToMapStr())
 
 		if nil != err {
 			blog.Errorf("[operation-inst] failed to request object controller, err: %s", err.Error())
@@ -358,11 +362,11 @@ func (c *commonInst) DeleteInstByInstID(params types.ContextParams, obj model.Ob
 		}
 
 		if common.CCSuccess != rsp.Code {
-			blog.Errorf("[operation-inst] failed to delete the object(%s) inst by the condition(%#v), err: %s", obj.GetID(), delCond.ToMapStr(), rsp.ErrMsg)
+			blog.Errorf("[operation-inst] failed to delete the object(%s) inst by the condition(%#v), err: %s", delInst.obj.GetID(), delCond.ToMapStr(), rsp.ErrMsg)
 			return params.Err.Error(rsp.Code)
 		}
 
-		NewSupplementary().Audit(params, c.clientSet, obj, c).CommitDeleteLog(preAudit, nil, nil)
+		NewSupplementary().Audit(params, c.clientSet, delInst.obj, c).CommitDeleteLog(preAudit, nil, nil)
 	}
 	return nil
 }

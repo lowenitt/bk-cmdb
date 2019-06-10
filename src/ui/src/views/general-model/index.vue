@@ -10,14 +10,12 @@
                     </bk-button>
                 </div>
                 <div class="fl" v-tooltip="$t('ModelManagement[\'导出\']')">
-                    <bk-button class="models-button" type="default submit" form="exportForm"
-                        :disabled="!table.checked.length">
+                    <bk-button class="models-button" type="default" form="exportForm"
+                        :disabled="!table.checked.length"
+                        @click="handleExport">
                         <i class="icon-cc-derivation"></i>
                     </bk-button>
                 </div>
-                <form id="exportForm" :action="url.export" method="POST" hidden>
-                    <input type="hidden" name="bk_inst_id" :value="table.checked.join(',')">
-                </form>
                 <div class="fl" v-tooltip="$t('Inst[\'批量更新\']')">
                     <bk-button class="models-button"
                         :disabled="!table.checked.length || !authority.includes('update')"
@@ -36,7 +34,7 @@
                     <bk-button style="margin-left: 20px;" type="primary"
                         :disabled="!authority.includes('update')"
                         @click="handleCreate">
-                        {{$t("Inst['立即创建']")}}
+                        {{$t("Common['新建']")}}
                     </bk-button>
                 </div>
             </div>
@@ -120,6 +118,7 @@
                         ref="multipleForm"
                         :authority="authority"
                         :properties="properties"
+                        :object-unique="objectUnique"
                         :propertyGroups="propertyGroups"
                         @on-submit="handleMultipleSave"
                         @on-cancel="handleMultipleCancel">
@@ -179,6 +178,7 @@
         },
         data () {
             return {
+                objectUnique: [],
                 properties: [],
                 propertyGroups: [],
                 table: {
@@ -545,7 +545,10 @@
                     this.attribute.type = 'details'
                 }
             },
-            handleMultipleEdit () {
+            async handleMultipleEdit () {
+                this.objectUnique = await this.$store.dispatch('objectUnique/searchObjectUniqueConstraints', {
+                    objId: this.objId
+                })
                 this.attribute.type = 'multiple'
                 this.slider.title = this.$t('Inst[\'批量更新\']')
                 this.slider.show = true
@@ -630,6 +633,15 @@
                     return true
                 }
                 return true
+            },
+            handleExport () {
+                const data = new FormData()
+                data.append('bk_inst_id', this.table.checked.join(','))
+                this.$http.download({
+                    url: this.url.export,
+                    method: 'post',
+                    data
+                })
             }
         }
     }

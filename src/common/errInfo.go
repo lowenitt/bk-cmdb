@@ -145,6 +145,9 @@ const (
 	// CCErrCommParamsNeedFloat the parameter must be float type
 	CCErrCommParamsNeedFloat = 1199042
 
+	// CCErrCommInternalServerError %s Internal Server Error
+	CCErrCommInternalServerError = 1199999
+
 	// apiserver 1100XXX
 
 	// toposerver 1101XXX
@@ -305,12 +308,8 @@ const (
 	CCErrorTopoMutipleObjectInstanceName = 1101059
 	// association kind has already been instantiated
 	CCErrorTopoAssociationKindHasBeenUsed = 1101060
-	// CCErrorTopoAssociationKindMainlineUnavailable can't use bk_mainline in this case
-	CCErrorTopoAssociationKindMainlineUnavailable = 1199043
-	// CCErrorTopoAssociationKindInconsistent means AssociationKind parameter Inconsistent with caller method
-	CCErrorTopoAssociationKindInconsistent = 1199044
-	// CCErrorTopoModleStopped means model have been stopped to use
-	CCErrorTopoModleStopped = 1199045
+	// create new instance for a new association, but association map is 1:n
+	CCErrorTopoCreateMultipleInstancesForOneToManyAssociation = 1101061
 
 	CCErrTopoAppDeleteFailed                       = 1001031
 	CCErrTopoAppUpdateFailed                       = 1001032
@@ -346,7 +345,12 @@ const (
 
 	CCErrTopoMulueIDNotfoundFailed = 1101080
 	CCErrTopoBkAppNotAllowedDelete = 1101081
-
+	// CCErrorTopoAssociationKindMainlineUnavailable can't use bk_mainline in this case
+	CCErrorTopoAssociationKindMainlineUnavailable = 1101082
+	// CCErrorTopoAssociationKindInconsistent means AssociationKind parameter Inconsistent with caller method
+	CCErrorTopoAssociationKindInconsistent = 1101083
+	// CCErrorTopoModleStopped means model have been stopped to use
+	CCErrorTopoModleStopped = 1101084
 	// objectcontroller 1102XXX
 
 	// CCErrObjectPropertyGroupInsertFailed failed to save the property group
@@ -504,6 +508,7 @@ const (
 	CCErrHostAPPNotFoundFail           = 1110048
 	CCErrHostGetModuleFail             = 1110049
 	CCErrHostAgentStatusFail           = 1110050
+	CCErrHostSearchNeedObjectInstIDErr = 1110058
 
 	//web  1111XXX
 	CCErrWebFileNoFound      = 1111001

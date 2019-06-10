@@ -47,7 +47,7 @@ func (valid *ValidMap) validCreateUnique(valData map[string]interface{}) error {
 			case metadata.UinqueKeyKindProperty:
 				property, ok := valid.idToProperty[int64(key.ID)]
 				if !ok {
-					blog.Errorf("[validCreateUnique] find [%s] property [%d] error %v", valid.objID, key.ID)
+					blog.Errorf("[validCreateUnique] find [%s] property [%d] error not found", valid.objID, key.ID)
 					return valid.errif.Errorf(common.CCErrTopoObjectPropertyNotFound, key.ID)
 				}
 				uniquekeys[property.PropertyID] = true
@@ -140,14 +140,14 @@ func (valid *ValidMap) validUpdateUnique(valData map[string]interface{}, instID 
 	}
 
 	for _, unique := range uniqueresp.Data {
-		// retrive unique value
+		// retrieve unique value
 		uniquekeys := map[string]bool{}
 		for _, key := range unique.Keys {
 			switch key.Kind {
 			case metadata.UinqueKeyKindProperty:
 				property, ok := valid.idToProperty[int64(key.ID)]
 				if !ok {
-					blog.Errorf("[validUpdateUnique] find [%s] property [%d] error %v", valid.objID, key.ID)
+					blog.Errorf("[validUpdateUnique] find [%s] property [%d] error: not found", valid.objID, key.ID)
 					return valid.errif.Errorf(common.CCErrTopoObjectPropertyNotFound, property.ID)
 				}
 				uniquekeys[property.PropertyID] = true
@@ -160,7 +160,7 @@ func (valid *ValidMap) validUpdateUnique(valData map[string]interface{}, instID 
 		cond := condition.CreateCondition()
 		anyEmpty := false
 		for key := range uniquekeys {
-			val, ok := valData[key]
+			val, ok := mapData[key]
 			if !ok || isEmpty(val) {
 				anyEmpty = true
 			}
